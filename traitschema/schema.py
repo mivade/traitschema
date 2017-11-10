@@ -21,7 +21,31 @@ class _NumpyJsonEncoder(json.JSONEncoder):
 
 
 class Schema(HasTraits):
-    """Base class for defining serializable schema/data classes."""
+    """Extension to :class:`HasTraits` to add methods for automatically saving
+    and loading typed data.
+
+    Examples
+    --------
+    Create a new data class::
+
+        import numpy as np
+        from traits.api import Array
+        from traitschema import Schema
+
+        class Matrix(Schema):
+            data = Array(dtype=np.float64)
+
+        matrix = Matrix(data=np.random.random((8, 8)))
+
+    Serialize to HDF5 using :mod:`h5py`::
+
+        matrix.to_hdf("out.h5")
+
+    Load from HDF5::
+
+        matrix_copy = Matrix.from_hdf("out.h5")
+
+    """
     def __init__(self, **kwargs):
         super(Schema, self).__init__(**kwargs)
 
