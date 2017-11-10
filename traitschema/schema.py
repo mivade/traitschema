@@ -42,10 +42,14 @@ class Schema(HasTraits):
         return self.__str__()
 
     def to_hdf(self, filename, mode='w'):
-        """Serialize schema to HDF5.
+        """Serialize to HDF5 using :mod:`h5py`.
 
-        :param str filename:
-        :param str mode: Default: ``'w'``
+        Parameters
+        ----------
+        filename : str
+            Path to save HDF5 file to.
+        mode : str
+            Default: ``'w'``
 
         """
         if h5py is None:
@@ -65,10 +69,15 @@ class Schema(HasTraits):
 
     @classmethod
     def from_hdf(cls, filename):
-        """Deserialize from HDF5.
+        """Deserialize from HDF5 using :mod:`h5py`.
 
-        :param str filename:
-        :returns: Deserialized instance
+        Parameters
+        ----------
+        filename : str
+
+        Returns
+        -------
+        Deserialized instance
 
         """
         if h5py is None:
@@ -81,7 +90,11 @@ class Schema(HasTraits):
         return self
 
     def to_json(self):
-        """Serialize as a JSON string.
+        """Serialize to JSON.
+
+        Returns
+        -------
+        JSON string.
 
         Notes
         -----
@@ -97,7 +110,13 @@ class Schema(HasTraits):
     def from_json(cls, data):
         """Deserialize from a JSON string or file.
 
-        :param str or file data:
+        Parameters
+        ----------
+        data : str or file-like
+
+        Returns
+        -------
+        Deserialized instance
 
         """
         if not isinstance(data, str):
