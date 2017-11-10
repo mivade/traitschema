@@ -2,9 +2,14 @@ from __future__ import division
 
 import json
 
-import h5py
 import numpy as np
 from traits.api import HasTraits
+
+
+try:
+    import h5py
+except ImportError:
+    h5py = None
 
 
 class _NumpyJsonEncoder(json.JSONEncoder):
@@ -43,6 +48,9 @@ class Schema(HasTraits):
         :param str mode: Default: ``'w'``
 
         """
+        if h5py is None:
+            raise RuntimeError("h5py not found")
+
         with h5py.File(filename, mode) as hfile:
             for name in self.class_visible_traits():
                 trait = self.trait(name)
@@ -63,6 +71,9 @@ class Schema(HasTraits):
         :returns: Deserialized instance
 
         """
+        if h5py is None:
+            raise RuntimeError("h5py not found")
+
         self = cls()
         with h5py.File(filename, 'r') as hfile:
             for name in self.visible_traits():
