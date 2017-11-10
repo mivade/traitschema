@@ -8,7 +8,7 @@ from traits.api import HasTraits
 
 try:
     import h5py
-except ImportError:
+except ImportError:  # pragma: nocover
     h5py = None
 
 
