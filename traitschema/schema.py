@@ -91,6 +91,8 @@ class Schema(HasTraits):
                 if trait.desc is not None:
                     dset.attrs['desc'] = trait.desc
 
+            hfile.attrs['classname'] = self.__class__.__name__
+
     @classmethod
     def from_hdf(cls, filename):
         """Deserialize from HDF5 using :mod:`h5py`.

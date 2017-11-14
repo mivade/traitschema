@@ -28,6 +28,7 @@ def test_to_hdf(mode, desc, tmpdir):
     with h5py.File(filename, 'r') as hfile:
         assert_equal(hfile['/x'][:], obj.x)
         assert_equal(hfile['/y'][:], obj.y)
+        assert hfile.attrs['classname'] == 'MySchema'
 
 
 def test_from_hdf(tmpdir):
