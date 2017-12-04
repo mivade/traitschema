@@ -1,0 +1,38 @@
+package:
+  name: traitschema
+  version: 1.0.0
+
+source:
+  git_url: ../
+
+build:
+  # If this is a new build for the same version, increment the build
+  # number. If you do not include this key, it defaults to 0.
+  number: 0
+
+  # Specify additional env vars pass through
+  # script_env:
+  #   - ENV_VAR_HERE
+
+requirements:
+  build:
+    - python {{ python }}
+    - setuptools
+    - numpy
+    - traits
+
+  run:
+    - python {{ python }}
+    - h5py
+    - numpy
+    - traits
+
+test:
+  # Test that we can import the package
+  imports:
+    - traitschema
+
+about:
+  home: https://github.com/mivade/traitschema
+  license: BSD
+  license_file: LICENSE

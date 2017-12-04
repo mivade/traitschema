@@ -1,5 +1,4 @@
-from setuptools import setup, find_packages
-
+from setuptools import setup
 from traitschema import __version__
 
 with open("README.rst", 'r') as f:
@@ -14,21 +13,14 @@ setup(
     author="Michael V. DePalatis",
     author_email="mike@depalatis.net",
     license="BSD",
-    packages=find_packages(),
+    packages=['traitschema'],
     package_data={
         "": ["*.txt", "*.json"]
     },
-    install_requires=[
-        "numpy",
-        "traits",
-    ],
-    setup_requires=[
-        "pytest-runner"
-    ],
-    tests_require=[
-        "pytest",
-        "pytest-cov"
-    ],
+    # install_requires=[
+    #     "numpy",
+    #     "traits",
+    # ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
