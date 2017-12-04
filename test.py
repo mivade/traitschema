@@ -4,14 +4,13 @@ import numpy as np
 from numpy.testing import assert_equal
 import h5py
 
-from traits.api import Array, String
-
+from traits.api import Array, CStr
 from traitschema import Schema
 
 
 class SomeSchema(Schema):
     x = Array(dtype=np.float)
-    name = String()
+    name = CStr()
 
 
 @pytest.mark.parametrize('mode', ['w', 'a'])
@@ -39,6 +38,26 @@ def test_to_dict():
     d = obj.to_dict()
     assert d['name'] == obj.name
     assert_equal(obj.x, d['x'])
+
+
+@pytest.mark.parametrize('compress', [True, False])
+def test_to_npz(compress, tmpdir):
+    obj = SomeSchema(name='test', x=[1, 2, 3])
+    path = str(tmpdir.join('test.npz'))
+    obj.to_npz(path, compress=compress)
+
+    npz = np.load(path)
+    assert str(npz['name']) == 'test'
+    assert_equal([1, 2, 3], npz['x'])
+
+
+def test_from_npz(tmpdir):
+    path = str(tmpdir.join('output.npz'))
+    np.savez(path, x=[1, 2, 3], name='test')
+
+    obj = SomeSchema.from_npz(path)
+    assert obj.name == 'test'
+    assert_equal([1, 2, 3], obj.x)
 
 
 def test_from_hdf(tmpdir):

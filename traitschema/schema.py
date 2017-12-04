@@ -69,6 +69,40 @@ class Schema(HasTraits):
         """Return all visible traits as a dictionary."""
         return {name: getattr(self, name) for name in self.visible_traits()}
 
+    def to_npz(self, filename, compress=False):
+        """Save in numpy's npz archive format.
+
+        Parameters
+        ----------
+        filename : str
+        compress : bool
+            Save as a compressed archive (default: False)
+
+        Notes
+        -----
+        To ensure loading of scalar values works as expected, casting traits
+        should be used (e.g., ``CStr`` instead of ``String`` or ``Str``). See
+        the :mod:`traits` documentation for details.
+
+        """
+        save = np.savez_compressed if compress else np.savez
+        attrs = self.to_dict()
+        save(filename, **attrs)
+
+    @classmethod
+    def from_npz(cls, filename):
+        """Load data from numpy's npz format.
+
+        Parameters
+        ----------
+        filename : str
+
+        """
+        npz = np.load(filename)
+        attrs = {key: value for key, value in npz.items()}
+        self = cls(**attrs)
+        return self
+
     def to_hdf(self, filename, mode='w'):
         """Serialize to HDF5 using :mod:`h5py`.
 
