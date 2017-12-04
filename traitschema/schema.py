@@ -115,8 +115,8 @@ class Schema(HasTraits):
                 setattr(self, name, hfile['/{}'.format(name)][:])
         return self
 
-    def to_json(self):
-        """Serialize to JSON.
+    def to_json(self, **kwargs):
+        """Serialize to JSON. Keyword arguments are passed to :func:`json.dumps`.
 
         Returns
         -------
@@ -126,11 +126,13 @@ class Schema(HasTraits):
         -----
         This uses a custom JSON encoder to handle numpy arrays but could
         conceivably lose precision. If this is important, please consider
-        serializing in HDF5 format instead.
+        serializing in HDF5 format instead. As a consequence of using a custom
+        encoder, the ``cls`` keyword arugment, if passed, will be ignored.
 
         """
         d = {name: getattr(self, name) for name in self.visible_traits()}
-        return json.dumps(d, cls=_NumpyJsonEncoder)
+        kwargs['cls'] = _NumpyJsonEncoder
+        return json.dumps(d, **kwargs)
 
     @classmethod
     def from_json(cls, data):
