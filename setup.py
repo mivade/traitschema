@@ -10,8 +10,10 @@ setup(
     version=__version__,
     description="Serializable schema using traits",
     long_description=README,
+    url="https://github.com/mivade/traitschema",
     author="Michael V. DePalatis",
     author_email="mike@depalatis.net",
+    license="BSD",
     packages=find_packages(),
     package_data={
         "": ["*.txt", "*.json"]
@@ -26,5 +28,12 @@ setup(
     tests_require=[
         "pytest",
         "pytest-cov"
+    ],
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: BSD License",
+        "Programming Language :: Python"
     ]
 )
