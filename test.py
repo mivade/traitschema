@@ -31,6 +31,16 @@ def test_to_hdf(mode, desc, tmpdir):
         assert hfile.attrs['classname'] == 'MySchema'
 
 
+def test_to_dict():
+    obj = SomeSchema()
+    obj.name = 'test'
+    obj.x = [1, 2, 3]
+
+    d = obj.to_dict()
+    assert d['name'] == obj.name
+    assert_equal(obj.x, d['x'])
+
+
 def test_from_hdf(tmpdir):
     x = np.arange(10)
     y = np.arange(10, dtype=np.int32)

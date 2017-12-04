@@ -57,13 +57,17 @@ class Schema(HasTraits):
                 ))
             setattr(self, key, value)
 
-    def __str__(self):
+    def __str__(self):  # pragma: nocover
         attr_strs = ["{}={}".format(attr, getattr(self, attr))
                      for attr in self.visible_traits()]
         return "<{}({})>".format(self.__class__.__name__, '\n    '.join(attr_strs))
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: nocover
         return self.__str__()
+
+    def to_dict(self):
+        """Return all visible traits as a dictionary."""
+        return {name: getattr(self, name) for name in self.visible_traits()}
 
     def to_hdf(self, filename, mode='w'):
         """Serialize to HDF5 using :mod:`h5py`.
@@ -112,7 +116,7 @@ class Schema(HasTraits):
         self = cls()
         with h5py.File(filename, 'r') as hfile:
             for name in self.visible_traits():
-                setattr(self, name, hfile['/{}'.format(name)][:])
+                setattr(self, name, hfile['/{}'.format(name)].value)
         return self
 
     def to_json(self, **kwargs):
