@@ -1,9 +1,12 @@
+"""Demo showing saving as and loading from JSON."""
+
 import numpy as np
-from traits.api import Array
+from traits.api import Array, String
 from traitschema import Schema
 
 
 class MatrixSchema(Schema):
+    meta = String("default")
     data = Array(dtype=np.float64, shape=(8, 8))
 
 
