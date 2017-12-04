@@ -5,7 +5,10 @@ traitschema
     :target: https://travis-ci.org/mivade/traitschema
 
 .. image:: https://codecov.io/gh/mivade/traitschema/branch/master/graph/badge.svg
-  :target: https://codecov.io/gh/mivade/traitschema
+    :target: https://codecov.io/gh/mivade/traitschema
+
+.. image:: https://img.shields.io/github/release/mivade/traitschema.svg
+    :target: https://github.com/mivade/traitschema
 
 Create serializable, type-checked schema using traits_ and Numpy. A typical use
 case involves saving several Numpy arrays of varying shape.
