@@ -113,6 +113,16 @@ class Schema(HasTraits):
         mode : str
             Default: ``'w'``
 
+        Notes
+        -----
+        Each stored dataset will also have a ``desc`` attribute which uses the
+        ``desc`` attribute of each trait.
+
+        The root node also has attributes:
+
+        * ``classname`` - the class name of the instance being serialized
+        * ``python_module`` - the Python module in which the class is defined
+
         """
         if h5py is None:
             raise RuntimeError("h5py not found")
@@ -130,6 +140,7 @@ class Schema(HasTraits):
                     dset.attrs['desc'] = trait.desc
 
             hfile.attrs['classname'] = self.__class__.__name__
+            hfile.attrs['python_module'] = self.__class__.__module__
 
     @classmethod
     def from_hdf(cls, filename):
