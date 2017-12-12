@@ -28,6 +28,33 @@ def test_to_hdf(mode, desc, tmpdir):
         assert_equal(hfile['/x'][:], obj.x)
         assert_equal(hfile['/y'][:], obj.y)
         assert hfile.attrs['classname'] == 'MySchema'
+        assert hfile.attrs['python_module'] == 'test'
+        if desc is not None:
+            assert hfile['/x'].attrs['desc'] == desc
+            assert hfile['/y'].attrs['desc'] == desc
+        else:
+            assert len(hfile['/x'].attrs.keys()) == 0
+            assert len(hfile['/y'].attrs.keys()) == 0
+
+
+def test_from_hdf(tmpdir):
+    x = np.arange(10)
+    y = np.arange(10, dtype=np.int32)
+
+    path = str(tmpdir.join('test.h5'))
+
+    with h5py.File(path, 'w') as hfile:
+        hfile.create_dataset('/x', data=x, chunks=True)
+        hfile.create_dataset('/y', data=y, chunks=True)
+
+    class MySchema(Schema):
+        x = Array(dtype=np.float64)
+        y = Array(dtype=np.int32)
+
+    instance = MySchema.from_hdf(path)
+
+    assert_equal(instance.x, x)
+    assert_equal(instance.y, y)
 
 
 def test_to_dict():
@@ -58,26 +85,6 @@ def test_from_npz(tmpdir):
     obj = SomeSchema.from_npz(path)
     assert obj.name == 'test'
     assert_equal([1, 2, 3], obj.x)
-
-
-def test_from_hdf(tmpdir):
-    x = np.arange(10)
-    y = np.arange(10, dtype=np.int32)
-
-    path = str(tmpdir.join('test.h5'))
-
-    with h5py.File(path, 'w') as hfile:
-        hfile.create_dataset('/x', data=x, chunks=True)
-        hfile.create_dataset('/y', data=y, chunks=True)
-
-    class MySchema(Schema):
-        x = Array(dtype=np.float64)
-        y = Array(dtype=np.int32)
-
-    instance = MySchema.from_hdf(path)
-
-    assert_equal(instance.x, x)
-    assert_equal(instance.y, y)
 
 
 def test_to_json():
