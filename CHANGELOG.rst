@@ -1,6 +1,12 @@
 Changes
 =======
 
+Unreleased
+----------
+
+* Added compression options for saving in HDF5 format
+* Included ``Pipfile`` for use with ``pipenv``
+
 Version 1.1.0
 -------------
 
