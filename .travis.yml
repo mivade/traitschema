@@ -26,9 +26,8 @@ install:
   - source activate test-environment
   - pip install pipenv
   - pipenv install -d
-  - pipenv run pytest
 #   - python setup.py install
 script:
-  - python -m pytest test.py
+  - pipenv run pytest
 on_success:
   - codecov
