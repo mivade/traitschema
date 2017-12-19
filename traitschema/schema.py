@@ -103,7 +103,7 @@ class Schema(HasTraits):
         self = cls(**attrs)
         return self
 
-    def to_hdf(self, filename, mode='w'):
+    def to_hdf(self, filename, mode='w', compression=None, compression_opts=None):
         """Serialize to HDF5 using :mod:`h5py`.
 
         Parameters
@@ -112,6 +112,12 @@ class Schema(HasTraits):
             Path to save HDF5 file to.
         mode : str
             Default: ``'w'``
+        compression : str or None
+            Compression to use with arrays (see :mod:`h5py` documentation for
+            valid choices).
+        compression_opts : int or None
+            Compression options, generally a number specifying compression level
+            (see :mod:`h5py` documentation for details).
 
         Notes
         -----
@@ -133,9 +139,18 @@ class Schema(HasTraits):
                 # tt = trait.trait_type
 
                 chunks = True if trait.array else False
+
+                compression_kwargs = {}
+                if chunks:
+                    if compression is not None:
+                        compression_kwargs['compression'] = compression
+                        if compression_opts is not None:
+                            compression_kwargs['compression_opts'] = compression_opts
+
                 dset = hfile.create_dataset('/{}'.format(name),
                                             data=getattr(self, name),
-                                            chunks=chunks)
+                                            chunks=chunks,
+                                            **compression_kwargs)
                 if trait.desc is not None:
                     dset.attrs['desc'] = trait.desc
 

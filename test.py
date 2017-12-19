@@ -15,14 +15,24 @@ class SomeSchema(Schema):
 
 @pytest.mark.parametrize('mode', ['w', 'a'])
 @pytest.mark.parametrize('desc', ['a number', None])
-def test_to_hdf(mode, desc, tmpdir):
+@pytest.mark.parametrize('compression', [None, 'gzip', 'lzf'])
+@pytest.mark.parametrize('compression_opts', [None, 6])
+def test_to_hdf(mode, desc, compression, compression_opts, tmpdir):
     class MySchema(Schema):
         x = Array(dtype=np.float64, desc=desc)
         y = Array(dtype=np.int32, desc=desc)
     obj = MySchema(x=np.random.random(100), y=np.random.random(100))
     filename = str(tmpdir.join('test.h5'))
 
-    obj.to_hdf(filename, mode)
+    call = lambda: obj.to_hdf(
+        filename, mode, compression=compression, compression_opts=compression_opts)
+
+    if compression == 'lzf' and compression_opts is not None:
+        with pytest.raises(ValueError):
+            call()
+        return
+    else:
+        call()
 
     with h5py.File(filename, 'r') as hfile:
         assert_equal(hfile['/x'][:], obj.x)
