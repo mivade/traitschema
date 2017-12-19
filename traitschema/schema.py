@@ -12,6 +12,13 @@ except ImportError:  # pragma: nocover
     h5py = None
 
 
+class OptionalDependencyMissingError(Exception):
+    """Raised when an optional dependency such as h5py is required but not
+    installed.
+
+    """
+
+
 class _NumpyJsonEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, np.ndarray):
@@ -130,8 +137,8 @@ class Schema(HasTraits):
         * ``python_module`` - the Python module in which the class is defined
 
         """
-        if h5py is None:
-            raise RuntimeError("h5py not found")
+        if h5py is None:  # pragma: nocover
+            raise OptionalDependencyMissingError("h5py not found")
 
         with h5py.File(filename, mode) as hfile:
             for name in self.class_visible_traits():
@@ -170,8 +177,8 @@ class Schema(HasTraits):
         Deserialized instance
 
         """
-        if h5py is None:
-            raise RuntimeError("h5py not found")
+        if h5py is None:  # pragma: nocover
+            raise OptionalDependencyMissingError("h5py not found")
 
         self = cls()
         with h5py.File(filename, 'r') as hfile:
