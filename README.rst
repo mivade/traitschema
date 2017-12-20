@@ -11,7 +11,7 @@ traitschema
     :target: https://github.com/mivade/traitschema
 
 Create serializable, type-checked schema using traits_ and Numpy. A typical use
-case involves saving several Numpy arrays of varying shape.
+case involves saving several Numpy arrays of varying shape and type.
 
 .. _traits: http://docs.enthought.com/traits/
 
