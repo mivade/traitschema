@@ -6,7 +6,7 @@ import h5py
 import string
 import random
 
-from traits.api import Array, CStr
+from traits.api import Array, CStr, Float
 from traitschema import Schema
 
 
@@ -22,15 +22,16 @@ class SomeSchema(Schema):
 
 
 @pytest.mark.parametrize('mode', ['w', 'a'])
-@pytest.mark.parametrize('desc', ['a number', None, 'a string'])
+@pytest.mark.parametrize('desc', ['a float', 'a number', None, 'a string'])
 @pytest.mark.parametrize('compression', [None, 'gzip', 'lzf'])
 @pytest.mark.parametrize('compression_opts', [None, 6])
 def test_to_hdf(mode, desc, compression, compression_opts, tmpdir):
     class MySchema(Schema):
+        w = Float(desc=desc)
         x = Array(dtype=np.float64, desc=desc)
         y = Array(dtype=np.int32, desc=desc)
         z = Array(dtype=np.unicode, desc=desc)
-    obj = MySchema(x=np.random.random(100), y=np.random.random(100),
+    obj = MySchema(w=0.01, x=np.random.random(100), y=np.random.random(100),
                    z=np.array([generate_random_string() for _ in range(100)],
                               dtype=np.unicode))
     filename = str(tmpdir.join('test.h5'))
@@ -46,16 +47,19 @@ def test_to_hdf(mode, desc, compression, compression_opts, tmpdir):
         call()
 
     with h5py.File(filename, 'r') as hfile:
+        assert_equal(hfile['/w'].value, obj.w)
         assert_equal(hfile['/x'][:], obj.x)
         assert_equal(hfile['/y'][:], obj.y)
         assert_equal([s.decode('utf8') for s in hfile['/z'][:]], obj.z)
         assert hfile.attrs['classname'] == 'MySchema'
         assert hfile.attrs['python_module'] == 'test'
         if desc is not None:
+            assert hfile['/w'].attrs['desc'] == desc
             assert hfile['/x'].attrs['desc'] == desc
             assert hfile['/y'].attrs['desc'] == desc
             assert hfile['/z'].attrs['desc'] == desc
         else:
+            assert len(hfile['/x'].attrs.keys()) == 0
             assert len(hfile['/x'].attrs.keys()) == 0
             assert len(hfile['/y'].attrs.keys()) == 0
             assert len(hfile['/z'].attrs.keys()) == 0
