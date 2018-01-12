@@ -3,9 +3,17 @@ import pytest
 import numpy as np
 from numpy.testing import assert_equal
 import h5py
+import string
+import random
 
 from traits.api import Array, CStr
 from traitschema import Schema
+
+
+def generate_random_string(size=10):
+    mystring = ''.join(random.choice(string.ascii_uppercase + string.digits)
+                       for _ in range(size))
+    return mystring
 
 
 class SomeSchema(Schema):
@@ -14,14 +22,17 @@ class SomeSchema(Schema):
 
 
 @pytest.mark.parametrize('mode', ['w', 'a'])
-@pytest.mark.parametrize('desc', ['a number', None])
+@pytest.mark.parametrize('desc', ['a number', None, 'a string'])
 @pytest.mark.parametrize('compression', [None, 'gzip', 'lzf'])
 @pytest.mark.parametrize('compression_opts', [None, 6])
 def test_to_hdf(mode, desc, compression, compression_opts, tmpdir):
     class MySchema(Schema):
         x = Array(dtype=np.float64, desc=desc)
         y = Array(dtype=np.int32, desc=desc)
-    obj = MySchema(x=np.random.random(100), y=np.random.random(100))
+        z = Array(dtype=np.unicode, desc=desc)
+    obj = MySchema(x=np.random.random(100), y=np.random.random(100),
+                   z=np.array([generate_random_string() for _ in range(100)],
+                              dtype=np.unicode))
     filename = str(tmpdir.join('test.h5'))
 
     call = lambda: obj.to_hdf(
@@ -37,34 +48,41 @@ def test_to_hdf(mode, desc, compression, compression_opts, tmpdir):
     with h5py.File(filename, 'r') as hfile:
         assert_equal(hfile['/x'][:], obj.x)
         assert_equal(hfile['/y'][:], obj.y)
+        assert_equal([s.decode('utf8') for s in hfile['/z'][:]], obj.z)
         assert hfile.attrs['classname'] == 'MySchema'
         assert hfile.attrs['python_module'] == 'test'
         if desc is not None:
             assert hfile['/x'].attrs['desc'] == desc
             assert hfile['/y'].attrs['desc'] == desc
+            assert hfile['/z'].attrs['desc'] == desc
         else:
             assert len(hfile['/x'].attrs.keys()) == 0
             assert len(hfile['/y'].attrs.keys()) == 0
+            assert len(hfile['/z'].attrs.keys()) == 0
 
 
 def test_from_hdf(tmpdir):
     x = np.arange(10)
     y = np.arange(10, dtype=np.int32)
+    z = np.array([generate_random_string().encode('utf8') for _ in range(5)])
 
     path = str(tmpdir.join('test.h5'))
 
     with h5py.File(path, 'w') as hfile:
         hfile.create_dataset('/x', data=x, chunks=True)
         hfile.create_dataset('/y', data=y, chunks=True)
+        hfile.create_dataset('/z', data=z, chunks=True)
 
     class MySchema(Schema):
         x = Array(dtype=np.float64)
         y = Array(dtype=np.int32)
+        z = Array(dtype=np.unicode)
 
     instance = MySchema.from_hdf(path)
 
     assert_equal(instance.x, x)
     assert_equal(instance.y, y)
+    assert_equal(instance.z, [s.decode('utf8') for s in z])
 
 
 def test_to_dict():
