@@ -145,13 +145,12 @@ class Schema(HasTraits):
                 trait = self.trait(name)
                 # tt = trait.trait_type
 
-                # Workaround for saving arrays containing unicode
-                if trait.array:
-                    data = getattr(self, name)
-                    if str(data.dtype).find("<U") != -1:
-                        data = [s.encode('utf8') for s in data]
-                else:
-                    data = getattr(self, name)
+                # Workaround for saving arrays containing unicode. When the
+                # data type is unicode, each element is encoded as utf-8
+                # before being saved to hdf5
+                data = getattr(self, name)
+                if trait.array and str(data.dtype).find("<U") != -1:
+                    data = [s.encode('utf8') for s in data]
 
                 chunks = True if trait.array else False
 
