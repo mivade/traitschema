@@ -145,6 +145,13 @@ class Schema(HasTraits):
                 trait = self.trait(name)
                 # tt = trait.trait_type
 
+                # Workaround for saving arrays containing unicode. When the
+                # data type is unicode, each element is encoded as utf-8
+                # before being saved to hdf5
+                data = getattr(self, name)
+                if trait.array is True and str(data.dtype).find("<U") != -1:
+                    data = [s.encode('utf8') for s in data]
+
                 chunks = True if trait.array else False
 
                 compression_kwargs = {}
@@ -155,7 +162,7 @@ class Schema(HasTraits):
                             compression_kwargs['compression_opts'] = compression_opts
 
                 dset = hfile.create_dataset('/{}'.format(name),
-                                            data=getattr(self, name),
+                                            data=data,
                                             chunks=chunks,
                                             **compression_kwargs)
                 if trait.desc is not None:
