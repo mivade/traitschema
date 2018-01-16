@@ -110,7 +110,9 @@ class Schema(HasTraits):
         self = cls(**attrs)
         return self
 
-    def to_hdf(self, filename, mode='w', compression=None, compression_opts=None):
+    def to_hdf(self, filename, mode='w', compression=None,
+               compression_opts=None, encode_string_arrays=True,
+               encoding='utf8'):
         """Serialize to HDF5 using :mod:`h5py`.
 
         Parameters
@@ -125,6 +127,13 @@ class Schema(HasTraits):
         compression_opts : int or None
             Compression options, generally a number specifying compression level
             (see :mod:`h5py` documentation for details).
+        encode_string_arrays : bool
+            When True, force encoding of arrays of unicode strings using the
+            ``encoding`` keyword argument. Not setting this will result in
+            errors if using arrays of unicode strings. Default: True.
+        encoding : str
+            Encoding to use when forcing encoding of unicode string arrays.
+            Default: ``'utf8'``.
 
         Notes
         -----
@@ -148,9 +157,11 @@ class Schema(HasTraits):
                 # Workaround for saving arrays containing unicode. When the
                 # data type is unicode, each element is encoded as utf-8
                 # before being saved to hdf5
+                # FIXME: is there a better way of determining stringyness?
                 data = getattr(self, name)
-                if trait.array is True and str(data.dtype).find("<U") != -1:
-                    data = [s.encode('utf8') for s in data]
+                if encode_string_arrays:
+                    if trait.array is True and str(data.dtype).find("<U") != -1:
+                        data = [s.encode(encoding) for s in data]
 
                 chunks = True if trait.array else False
 
