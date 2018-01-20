@@ -4,15 +4,15 @@ traitschema
 .. image:: https://travis-ci.org/mivade/traitschema.svg?branch=master
     :target: https://travis-ci.org/mivade/traitschema
 
+.. image:: https://readthedocs.org/projects/traitschema/badge/?version=latest
+    :target: http://traitschema.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
 .. image:: https://codecov.io/gh/mivade/traitschema/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/mivade/traitschema
 
 .. image:: https://img.shields.io/github/release/mivade/traitschema.svg
     :target: https://github.com/mivade/traitschema
-
-.. image:: https://readthedocs.org/projects/traitschema/badge/?version=latest
-    :target: http://traitschema.readthedocs.io/en/latest/?badge=latest
-    :alt: Documentation Status
 
 Create serializable, type-checked schema using traits_ and Numpy. A typical use
 case involves saving several Numpy arrays of varying shape and type.
