@@ -43,6 +43,8 @@ declared as a ``traits.api.Array`` type. Example:
 
     matrix = NamedMatrix(name="name", data=np.random.random((8, 8)))
 
+For other demos, see the ``demos`` directory.
+
 
 Saving and loading
 ------------------
