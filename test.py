@@ -16,6 +16,7 @@ def generate_random_string(size=10):
     return mystring
 
 
+@pytest.fixture(scope='session')
 def sample_recarray():
     sample = np.rec.array([('sample_unicode_field', 0),
                            ('another_sample', 1)],
@@ -26,6 +27,7 @@ def sample_recarray():
 
 class SomeSchema(Schema):
     x = Array(dtype=np.float)
+    y = Array()
     name = CStr()
 
 
@@ -34,14 +36,15 @@ class SomeSchema(Schema):
 @pytest.mark.parametrize('compression', [None, 'gzip', 'lzf'])
 @pytest.mark.parametrize('compression_opts', [None, 6])
 @pytest.mark.parametrize('encoding', ['utf8', 'ascii', 'latin1'])
-def test_to_hdf(mode, desc, compression, compression_opts, encoding, tmpdir):
+def test_to_hdf(mode, desc, compression, compression_opts, encoding, tmpdir,
+                sample_recarray):
     class MySchema(Schema):
         v = Array(desc=desc)
         w = Float(desc=desc)
         x = Array(dtype=np.float64, desc=desc)
         y = Array(dtype=np.int32, desc=desc)
         z = Array(dtype=np.unicode, desc=desc)
-    obj = MySchema(v=sample_recarray(),
+    obj = MySchema(v=sample_recarray,
                    w=0.01,
                    x=np.random.random(100),
                    y=np.random.random(100),
@@ -107,50 +110,58 @@ def test_from_hdf(tmpdir):
     assert_equal(instance.z, [s.decode('utf8') for s in z])
 
 
-def test_to_dict():
+def test_to_dict(sample_recarray):
     obj = SomeSchema()
     obj.name = 'test'
     obj.x = [1, 2, 3]
+    obj.y = sample_recarray
 
     d = obj.to_dict()
     assert d['name'] == obj.name
     assert_equal(obj.x, d['x'])
+    assert_equal(obj.y, d['y'])
 
 
 @pytest.mark.parametrize('compress', [True, False])
-def test_to_npz(compress, tmpdir):
-    obj = SomeSchema(name='test', x=[1, 2, 3])
+def test_to_npz(compress, tmpdir, sample_recarray):
+    obj = SomeSchema(name='test',
+                     x=[1, 2, 3],
+                     y=sample_recarray)
     path = str(tmpdir.join('test.npz'))
     obj.to_npz(path, compress=compress)
 
     npz = np.load(path)
     assert str(npz['name']) == 'test'
     assert_equal([1, 2, 3], npz['x'])
+    assert_equal(sample_recarray, npz['y'])
 
 
-def test_from_npz(tmpdir):
+def test_from_npz(tmpdir, sample_recarray):
     path = str(tmpdir.join('output.npz'))
-    np.savez(path, x=[1, 2, 3], name='test')
+    np.savez(path, x=[1, 2, 3], name='test', y=sample_recarray)
 
     obj = SomeSchema.from_npz(path)
     assert obj.name == 'test'
     assert_equal([1, 2, 3], obj.x)
+    assert_equal(sample_recarray, obj.y)
 
 
-def test_to_json():
-    obj = SomeSchema(x=list(range(10)), name="whatever")
+def test_to_json(sample_recarray):
+    obj = SomeSchema(x=list(range(10)), name="whatever", y=sample_recarray)
     jobj = obj.to_json()
 
     loaded = json.loads(jobj)
     assert_equal(loaded['x'], obj.x)
+    assert_equal(loaded['y'], obj.y.tolist())
     assert loaded['name'] == obj.name
 
 
 @pytest.mark.parametrize('fromfile', [True, False])
-def test_from_json(fromfile, tmpdir):
+def test_from_json(fromfile, tmpdir, sample_recarray):
     data = {
         "x": list(range(10)),
-        "name": "whatever"
+        "name": "whatever",
+        "y": sample_recarray.tolist()
     }
 
     if not fromfile:
@@ -164,4 +175,5 @@ def test_from_json(fromfile, tmpdir):
             obj = SomeSchema.from_json(f)
 
     assert_equal(obj.x, data['x'])
+    assert_equal(obj.y, data['y'])
     assert obj.name == data['name']
