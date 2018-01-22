@@ -110,7 +110,8 @@ class Schema(HasTraits):
         self = cls(**attrs)
         return self
 
-    def to_hdf(self, filename, mode='w', compression=None, compression_opts=None):
+    def to_hdf(self, filename, mode='w', compression=None,
+               compression_opts=None, force_encode=True, encoding='utf-8'):
         """Serialize to HDF5 using :mod:`h5py`.
 
         Parameters
@@ -125,6 +126,10 @@ class Schema(HasTraits):
         compression_opts : int or None
             Compression options, generally a number specifying compression level
             (see :mod:`h5py` documentation for details).
+        force_encode: bool
+            Whether or not unicode elements should be encoded before saving
+        encoding: str
+            The encoding scheme to use
 
         Notes
         -----
@@ -143,14 +148,33 @@ class Schema(HasTraits):
         with h5py.File(filename, mode) as hfile:
             for name in self.class_visible_traits():
                 trait = self.trait(name)
-                # tt = trait.trait_type
 
                 # Workaround for saving arrays containing unicode. When the
                 # data type is unicode, each element is encoded as utf-8
                 # before being saved to hdf5
                 data = getattr(self, name)
-                if trait.array is True and str(data.dtype).find("<U") != -1:
-                    data = [s.encode('utf8') for s in data]
+                if trait.array is True and force_encode:
+                    # Encode each element of an array containing unicode
+                    # elements
+                    if (isinstance(data, np.recarray) is False and
+                            data.dtype.char == 'U'):
+                        data = [s.encode(encoding) for s in data]
+
+                    elif isinstance(data, np.recarray):
+                        # Determine what the final dtypes will be
+                        final_dtypes = []
+                        unicode_fields = []
+                        for i, field in enumerate(data.dtype.names):
+                            if data[field].dtype.kind != 'U':
+                                final_dtypes.append((field,
+                                                     data[field].dtype.str))
+                            else:
+                                final_dtypes.append((field, '<S256'))
+                                unicode_fields.append(field)
+
+                        # Update dtypes of the data. This will coerce the
+                        # unicode fields to bytes automatically
+                        data = data.astype(final_dtypes)
 
                 chunks = True if trait.array else False
 
@@ -172,7 +196,7 @@ class Schema(HasTraits):
             hfile.attrs['python_module'] = self.__class__.__module__
 
     @classmethod
-    def from_hdf(cls, filename):
+    def from_hdf(cls, filename, force_decode=False, encoding='utf-8'):
         """Deserialize from HDF5 using :mod:`h5py`.
 
         Parameters
@@ -190,7 +214,8 @@ class Schema(HasTraits):
         self = cls()
         with h5py.File(filename, 'r') as hfile:
             for name in self.visible_traits():
-                setattr(self, name, hfile['/{}'.format(name)].value)
+                data = hfile['/{}'.format(name)].value
+                setattr(self, name, data)
         return self
 
     def to_json(self, **kwargs):

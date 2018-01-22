@@ -16,24 +16,37 @@ def generate_random_string(size=10):
     return mystring
 
 
+def sample_recarray():
+    sample = np.rec.array([('sample_unicode_field', 0),
+                           ('another_sample', 1)],
+                          dtype=[('field_1', '<U256'),
+                                 ('field_2', '<i8')])
+    return sample
+
+
 class SomeSchema(Schema):
     x = Array(dtype=np.float)
     name = CStr()
 
 
 @pytest.mark.parametrize('mode', ['w', 'a'])
-@pytest.mark.parametrize('desc', ['a float', 'a number', None, 'a string'])
+@pytest.mark.parametrize('desc', ['a number', None])
 @pytest.mark.parametrize('compression', [None, 'gzip', 'lzf'])
 @pytest.mark.parametrize('compression_opts', [None, 6])
 def test_to_hdf(mode, desc, compression, compression_opts, tmpdir):
     class MySchema(Schema):
+        v = Array(desc=desc)
         w = Float(desc=desc)
         x = Array(dtype=np.float64, desc=desc)
         y = Array(dtype=np.int32, desc=desc)
         z = Array(dtype=np.unicode, desc=desc)
-    obj = MySchema(w=0.01, x=np.random.random(100), y=np.random.random(100),
+    obj = MySchema(v=sample_recarray(),
+                   w=0.01,
+                   x=np.random.random(100),
+                   y=np.random.random(100),
                    z=np.array([generate_random_string() for _ in range(100)],
                               dtype=np.unicode))
+
     filename = str(tmpdir.join('test.h5'))
 
     call = lambda: obj.to_hdf(
@@ -54,12 +67,14 @@ def test_to_hdf(mode, desc, compression, compression_opts, tmpdir):
         assert hfile.attrs['classname'] == 'MySchema'
         assert hfile.attrs['python_module'] == 'test'
         if desc is not None:
+            assert hfile['/v'].attrs['desc'] == desc
             assert hfile['/w'].attrs['desc'] == desc
             assert hfile['/x'].attrs['desc'] == desc
             assert hfile['/y'].attrs['desc'] == desc
             assert hfile['/z'].attrs['desc'] == desc
         else:
-            assert len(hfile['/x'].attrs.keys()) == 0
+            assert len(hfile['/v'].attrs.keys()) == 0
+            assert len(hfile['/w'].attrs.keys()) == 0
             assert len(hfile['/x'].attrs.keys()) == 0
             assert len(hfile['/y'].attrs.keys()) == 0
             assert len(hfile['/z'].attrs.keys()) == 0
