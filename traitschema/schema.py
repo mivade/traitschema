@@ -157,14 +157,14 @@ class Schema(HasTraits):
                 # data type is unicode, each element is encoded as utf-8
                 # before being saved to hdf5
                 data = getattr(self, name)
+                data_is_recarray = isinstance(data, np.recarray)
                 if trait.array is True and encode_string_arrays:
                     # Encode each element of an array containing unicode
                     # elements
-                    if (isinstance(data, np.recarray) is False and
-                            data.dtype.char == 'U'):
+                    if ~data_is_recarray and data.dtype.char == 'U':
                         data = [s.encode(encoding) for s in data]
 
-                    elif isinstance(data, np.recarray):
+                    elif data_is_recarray:
                         # Determine what the final dtypes will be
                         final_dtypes = []
                         unicode_fields = []
@@ -200,7 +200,7 @@ class Schema(HasTraits):
             hfile.attrs['python_module'] = self.__class__.__module__
 
     @classmethod
-    def from_hdf(cls, filename, force_decode=False, encoding='utf-8'):
+    def from_hdf(cls, filename):
         """Deserialize from HDF5 using :mod:`h5py`.
 
         Parameters
