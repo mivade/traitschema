@@ -147,21 +147,24 @@ def test_from_npz(tmpdir, sample_recarray):
 
 
 def test_to_json(sample_recarray):
-    obj = SomeSchema(x=list(range(10)), name="whatever", y=sample_recarray)
+    obj_with_recarray = SomeSchema(x=list(range(10)), name="whatever",
+                                   y=sample_recarray)
+    with pytest.raises(RuntimeError):
+        jobj = obj_with_recarray.to_json()
+
+    obj = SomeSchema(x=list(range(10)), name="whatever")
     jobj = obj.to_json()
 
     loaded = json.loads(jobj)
     assert_equal(loaded['x'], obj.x)
-    assert_equal(loaded['y'], obj.y.tolist())
     assert loaded['name'] == obj.name
 
 
 @pytest.mark.parametrize('fromfile', [True, False])
-def test_from_json(fromfile, tmpdir, sample_recarray):
+def test_from_json(fromfile, tmpdir):
     data = {
         "x": list(range(10)),
-        "name": "whatever",
-        "y": sample_recarray.tolist()
+        "name": "whatever"
     }
 
     if not fromfile:
@@ -175,5 +178,4 @@ def test_from_json(fromfile, tmpdir, sample_recarray):
             obj = SomeSchema.from_json(f)
 
     assert_equal(obj.x, data['x'])
-    assert_equal(obj.y, data['y'])
     assert obj.name == data['name']

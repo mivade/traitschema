@@ -237,9 +237,18 @@ class Schema(HasTraits):
         encoder, the ``cls`` keyword arugment, if passed, will be ignored.
 
         """
-        d = {name: getattr(self, name) for name in self.visible_traits()}
+        json_data = {}
+        for name in self.visible_traits():
+            data = getattr(self, name)
+            # TODO: Figure out the right way to do this and maintain data
+            # types in the future
+            if isinstance(data, np.recarray):
+                raise RuntimeError("Recarrays are not currently supported "
+                                   "when saving to json")
+            json_data[name] = data
+
         kwargs['cls'] = _NumpyJsonEncoder
-        return json.dumps(d, **kwargs)
+        return json.dumps(json_data, **kwargs)
 
     @classmethod
     def from_json(cls, data):
