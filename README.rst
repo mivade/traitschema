@@ -4,6 +4,10 @@ traitschema
 .. image:: https://travis-ci.org/mivade/traitschema.svg?branch=master
     :target: https://travis-ci.org/mivade/traitschema
 
+.. image:: https://readthedocs.org/projects/traitschema/badge/?version=latest
+    :target: http://traitschema.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
 .. image:: https://codecov.io/gh/mivade/traitschema/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/mivade/traitschema
 
@@ -38,6 +42,8 @@ declared as a ``traits.api.Array`` type. Example:
         data = Array(dtype=np.float64)
 
     matrix = NamedMatrix(name="name", data=np.random.random((8, 8)))
+
+For other demos, see the ``demos`` directory.
 
 
 Saving and loading

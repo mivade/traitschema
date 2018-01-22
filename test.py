@@ -11,7 +11,7 @@ from traitschema import Schema
 
 
 def generate_random_string(size=10):
-    mystring = ''.join(random.choice(string.ascii_uppercase + string.digits)
+    mystring = ''.join(random.choice(string.printable)
                        for _ in range(size))
     return mystring
 
@@ -33,7 +33,8 @@ class SomeSchema(Schema):
 @pytest.mark.parametrize('desc', ['a number', None])
 @pytest.mark.parametrize('compression', [None, 'gzip', 'lzf'])
 @pytest.mark.parametrize('compression_opts', [None, 6])
-def test_to_hdf(mode, desc, compression, compression_opts, tmpdir):
+@pytest.mark.parametrize('encoding', ['utf8', 'ascii', 'latin1'])
+def test_to_hdf(mode, desc, compression, compression_opts, encoding, tmpdir):
     class MySchema(Schema):
         v = Array(desc=desc)
         w = Float(desc=desc)
@@ -50,7 +51,9 @@ def test_to_hdf(mode, desc, compression, compression_opts, tmpdir):
     filename = str(tmpdir.join('test.h5'))
 
     call = lambda: obj.to_hdf(
-        filename, mode, compression=compression, compression_opts=compression_opts)
+        filename, mode, compression=compression, compression_opts=compression_opts,
+        encode_string_arrays=True, encoding=encoding
+    )
 
     if compression == 'lzf' and compression_opts is not None:
         with pytest.raises(ValueError):

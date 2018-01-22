@@ -1,11 +1,12 @@
 Changes
 =======
 
-Unreleased
-----------
+Version 1.1.1
+-------------
 
 * Added compression options for saving in HDF5 format
 * Included ``Pipfile`` for use with ``pipenv``
+* Automatically encode unicode when saving to HDF5
 
 Version 1.1.0
 -------------
