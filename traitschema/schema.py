@@ -21,7 +21,11 @@ class OptionalDependencyMissingError(Exception):
 
 class _NumpyJsonEncoder(json.JSONEncoder):
     def default(self, o):
-        if isinstance(o, np.ndarray):
+        # TODO: Figure out the right way to do this that maintains dtypes
+        if isinstance(o, np.recarray):
+            raise RuntimeError("Recarrays are not currently supported when "
+                               "saving to json")
+        elif isinstance(o, np.ndarray):
             return o.tolist()
         else:
             return json.JSONEncoder.default(self, o)
@@ -237,18 +241,9 @@ class Schema(HasTraits):
         encoder, the ``cls`` keyword arugment, if passed, will be ignored.
 
         """
-        json_data = {}
-        for name in self.visible_traits():
-            data = getattr(self, name)
-            # TODO: Figure out the right way to do this and maintain data
-            # types in the future
-            if isinstance(data, np.recarray):
-                raise RuntimeError("Recarrays are not currently supported "
-                                   "when saving to json")
-            json_data[name] = data
-
+        data = {name: getattr(self, name) for name in self.visible_traits()}
         kwargs['cls'] = _NumpyJsonEncoder
-        return json.dumps(json_data, **kwargs)
+        return json.dumps(data, **kwargs)
 
     @classmethod
     def from_json(cls, data):
