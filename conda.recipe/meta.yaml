@@ -34,5 +34,6 @@ test:
 
 about:
   home: https://github.com/mivade/traitschema
+  summary: Serializable schema using the traits package
   license: BSD
   license_file: LICENSE
