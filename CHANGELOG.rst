@@ -1,8 +1,18 @@
 Changes
 =======
 
+Version 1.1.2
+-------------
+
+**2018-01-23**
+
+* Added options for encoding string arrays when saving as HDF5 (#3 and #4)
+* Added support for saving Numpy recarrays in HDF5 and npy formats (#5)
+
 Version 1.1.1
 -------------
+
+**2018-01-20**
 
 * Added compression options for saving in HDF5 format
 * Included ``Pipfile`` for use with ``pipenv``
