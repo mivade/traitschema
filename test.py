@@ -6,7 +6,7 @@ import h5py
 import string
 import random
 
-from traits.api import Array, CStr, Float
+from traits.api import Array, CStr, Float, ArrayOrNone
 from traitschema import Schema
 
 
@@ -28,6 +28,7 @@ def sample_recarray():
 class SomeSchema(Schema):
     x = Array(dtype=np.float)
     y = Array()
+    z = ArrayOrNone()
     name = CStr()
 
 
@@ -39,12 +40,14 @@ class SomeSchema(Schema):
 def test_to_hdf(mode, desc, compression, compression_opts, encoding, tmpdir,
                 sample_recarray):
     class MySchema(Schema):
+        u = ArrayOrNone()
         v = Array(desc=desc)
         w = Float(desc=desc)
         x = Array(dtype=np.float64, desc=desc)
         y = Array(dtype=np.int32, desc=desc)
         z = Array(dtype=np.unicode, desc=desc)
-    obj = MySchema(v=sample_recarray,
+    obj = MySchema(u=None,
+                   v=sample_recarray,
                    w=0.01,
                    x=np.random.random(100),
                    y=np.random.random(100),
@@ -126,7 +129,8 @@ def test_to_dict(sample_recarray):
 def test_to_npz(compress, tmpdir, sample_recarray):
     obj = SomeSchema(name='test',
                      x=[1, 2, 3],
-                     y=sample_recarray)
+                     y=sample_recarray,
+                     z=None)
     path = str(tmpdir.join('test.npz'))
     obj.to_npz(path, compress=compress)
 
@@ -148,7 +152,8 @@ def test_from_npz(tmpdir, sample_recarray):
 
 def test_to_json(sample_recarray):
     obj_with_recarray = SomeSchema(x=list(range(10)), name="whatever",
-                                   y=sample_recarray)
+                                   y=sample_recarray,
+                                   z=None)
     with pytest.raises(RuntimeError):
         jobj = obj_with_recarray.to_json()
 

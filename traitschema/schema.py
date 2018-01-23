@@ -161,6 +161,11 @@ class Schema(HasTraits):
                 # data type is unicode, each element is encoded as utf-8
                 # before being saved to hdf5
                 data = getattr(self, name)
+
+                if data is None:
+                    # If a trait has not been populated, don't try to store it
+                    continue
+
                 data_is_recarray = isinstance(data, np.recarray)
                 if trait.array is True and encode_string_arrays:
                     # Encode each element of an array containing unicode
