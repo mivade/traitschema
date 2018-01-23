@@ -21,7 +21,11 @@ class OptionalDependencyMissingError(Exception):
 
 class _NumpyJsonEncoder(json.JSONEncoder):
     def default(self, o):
-        if isinstance(o, np.ndarray):
+        # TODO: Figure out the right way to do this that maintains dtypes
+        if isinstance(o, np.recarray):
+            raise RuntimeError("Recarrays are not currently supported when "
+                               "saving to json")
+        elif isinstance(o, np.ndarray):
             return o.tolist()
         else:
             return json.JSONEncoder.default(self, o)
@@ -152,16 +156,33 @@ class Schema(HasTraits):
         with h5py.File(filename, mode) as hfile:
             for name in self.class_visible_traits():
                 trait = self.trait(name)
-                # tt = trait.trait_type
 
                 # Workaround for saving arrays containing unicode. When the
                 # data type is unicode, each element is encoded as utf-8
                 # before being saved to hdf5
-                # FIXME: is there a better way of determining stringyness?
                 data = getattr(self, name)
-                if encode_string_arrays:
-                    if trait.array is True and str(data.dtype).find("<U") != -1:
+                data_is_recarray = isinstance(data, np.recarray)
+                if trait.array is True and encode_string_arrays:
+                    # Encode each element of an array containing unicode
+                    # elements
+                    if ~data_is_recarray and data.dtype.char == 'U':
                         data = [s.encode(encoding) for s in data]
+
+                    elif data_is_recarray:
+                        # Determine what the final dtypes will be
+                        final_dtypes = []
+                        unicode_fields = []
+                        for i, field in enumerate(data.dtype.names):
+                            if data[field].dtype.kind != 'U':
+                                final_dtypes.append((field,
+                                                     data[field].dtype.str))
+                            else:
+                                final_dtypes.append((field, '<S256'))
+                                unicode_fields.append(field)
+
+                        # Update dtypes of the data. This will coerce the
+                        # unicode fields to bytes automatically
+                        data = data.astype(final_dtypes)
 
                 chunks = True if trait.array else False
 
@@ -201,7 +222,8 @@ class Schema(HasTraits):
         self = cls()
         with h5py.File(filename, 'r') as hfile:
             for name in self.visible_traits():
-                setattr(self, name, hfile['/{}'.format(name)].value)
+                data = hfile['/{}'.format(name)].value
+                setattr(self, name, data)
         return self
 
     def to_json(self, **kwargs):
@@ -219,9 +241,9 @@ class Schema(HasTraits):
         encoder, the ``cls`` keyword arugment, if passed, will be ignored.
 
         """
-        d = {name: getattr(self, name) for name in self.visible_traits()}
+        data = {name: getattr(self, name) for name in self.visible_traits()}
         kwargs['cls'] = _NumpyJsonEncoder
-        return json.dumps(d, **kwargs)
+        return json.dumps(data, **kwargs)
 
     @classmethod
     def from_json(cls, data):

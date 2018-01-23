@@ -16,25 +16,41 @@ def generate_random_string(size=10):
     return mystring
 
 
+@pytest.fixture(scope='session')
+def sample_recarray():
+    sample = np.rec.array([('sample_unicode_field', 0),
+                           ('another_sample', 1)],
+                          dtype=[('field_1', '<U256'),
+                                 ('field_2', '<i8')])
+    return sample
+
+
 class SomeSchema(Schema):
     x = Array(dtype=np.float)
+    y = Array()
     name = CStr()
 
 
 @pytest.mark.parametrize('mode', ['w', 'a'])
-@pytest.mark.parametrize('desc', ['a float', 'a number', None, 'a string'])
+@pytest.mark.parametrize('desc', ['a number', None])
 @pytest.mark.parametrize('compression', [None, 'gzip', 'lzf'])
 @pytest.mark.parametrize('compression_opts', [None, 6])
 @pytest.mark.parametrize('encoding', ['utf8', 'ascii', 'latin1'])
-def test_to_hdf(mode, desc, compression, compression_opts, encoding, tmpdir):
+def test_to_hdf(mode, desc, compression, compression_opts, encoding, tmpdir,
+                sample_recarray):
     class MySchema(Schema):
+        v = Array(desc=desc)
         w = Float(desc=desc)
         x = Array(dtype=np.float64, desc=desc)
         y = Array(dtype=np.int32, desc=desc)
         z = Array(dtype=np.unicode, desc=desc)
-    obj = MySchema(w=0.01, x=np.random.random(100), y=np.random.random(100),
+    obj = MySchema(v=sample_recarray,
+                   w=0.01,
+                   x=np.random.random(100),
+                   y=np.random.random(100),
                    z=np.array([generate_random_string() for _ in range(100)],
                               dtype=np.unicode))
+
     filename = str(tmpdir.join('test.h5'))
 
     call = lambda: obj.to_hdf(
@@ -57,12 +73,14 @@ def test_to_hdf(mode, desc, compression, compression_opts, encoding, tmpdir):
         assert hfile.attrs['classname'] == 'MySchema'
         assert hfile.attrs['python_module'] == 'test'
         if desc is not None:
+            assert hfile['/v'].attrs['desc'] == desc
             assert hfile['/w'].attrs['desc'] == desc
             assert hfile['/x'].attrs['desc'] == desc
             assert hfile['/y'].attrs['desc'] == desc
             assert hfile['/z'].attrs['desc'] == desc
         else:
-            assert len(hfile['/x'].attrs.keys()) == 0
+            assert len(hfile['/v'].attrs.keys()) == 0
+            assert len(hfile['/w'].attrs.keys()) == 0
             assert len(hfile['/x'].attrs.keys()) == 0
             assert len(hfile['/y'].attrs.keys()) == 0
             assert len(hfile['/z'].attrs.keys()) == 0
@@ -92,37 +110,48 @@ def test_from_hdf(tmpdir):
     assert_equal(instance.z, [s.decode('utf8') for s in z])
 
 
-def test_to_dict():
+def test_to_dict(sample_recarray):
     obj = SomeSchema()
     obj.name = 'test'
     obj.x = [1, 2, 3]
+    obj.y = sample_recarray
 
     d = obj.to_dict()
     assert d['name'] == obj.name
     assert_equal(obj.x, d['x'])
+    assert_equal(obj.y, d['y'])
 
 
 @pytest.mark.parametrize('compress', [True, False])
-def test_to_npz(compress, tmpdir):
-    obj = SomeSchema(name='test', x=[1, 2, 3])
+def test_to_npz(compress, tmpdir, sample_recarray):
+    obj = SomeSchema(name='test',
+                     x=[1, 2, 3],
+                     y=sample_recarray)
     path = str(tmpdir.join('test.npz'))
     obj.to_npz(path, compress=compress)
 
     npz = np.load(path)
     assert str(npz['name']) == 'test'
     assert_equal([1, 2, 3], npz['x'])
+    assert_equal(sample_recarray, npz['y'])
 
 
-def test_from_npz(tmpdir):
+def test_from_npz(tmpdir, sample_recarray):
     path = str(tmpdir.join('output.npz'))
-    np.savez(path, x=[1, 2, 3], name='test')
+    np.savez(path, x=[1, 2, 3], name='test', y=sample_recarray)
 
     obj = SomeSchema.from_npz(path)
     assert obj.name == 'test'
     assert_equal([1, 2, 3], obj.x)
+    assert_equal(sample_recarray, obj.y)
 
 
-def test_to_json():
+def test_to_json(sample_recarray):
+    obj_with_recarray = SomeSchema(x=list(range(10)), name="whatever",
+                                   y=sample_recarray)
+    with pytest.raises(RuntimeError):
+        jobj = obj_with_recarray.to_json()
+
     obj = SomeSchema(x=list(range(10)), name="whatever")
     jobj = obj.to_json()
 
