@@ -82,14 +82,17 @@ def test_to_hdf(mode, desc, compression, compression_opts, encoding, tmpdir,
             assert hfile['/y'].attrs['desc'] == desc
             assert hfile['/z'].attrs['desc'] == desc
         else:
-            assert len(hfile['/v'].attrs.keys()) == 0
-            assert len(hfile['/w'].attrs.keys()) == 0
-            assert len(hfile['/x'].attrs.keys()) == 0
-            assert len(hfile['/y'].attrs.keys()) == 0
-            assert len(hfile['/z'].attrs.keys()) == 0
+            # 'type' attribute should be populated
+            assert len(hfile['/v'].attrs.keys()) == 1
+            assert len(hfile['/w'].attrs.keys()) == 1
+            assert len(hfile['/x'].attrs.keys()) == 1
+            assert len(hfile['/y'].attrs.keys()) == 1
+            assert len(hfile['/z'].attrs.keys()) == 1
 
 
-def test_from_hdf(tmpdir):
+@pytest.mark.parametrize("encoding", ['utf-8'])
+@pytest.mark.parametrize("decode_string_arrays", [True, False])
+def test_from_hdf(tmpdir, encoding, decode_string_arrays):
     x = np.arange(10)
     y = np.arange(10, dtype=np.int32)
     z = np.array([generate_random_string().encode('utf-8') for _ in range(5)])
@@ -97,24 +100,29 @@ def test_from_hdf(tmpdir):
     path = str(tmpdir.join('test.h5'))
 
     with h5py.File(path, 'w') as hfile:
-        hfile.create_dataset('/x', data=x, chunks=True)
-        hfile.create_dataset('/y', data=y, chunks=True)
-        hfile.create_dataset('/z', data=z, chunks=True)
+        dset_x = hfile.create_dataset('/x', data=x, chunks=True)
+        dset_x.attrs['type'] = str(type(x))
+        dset_y = hfile.create_dataset('/y', data=y, chunks=True)
+        dset_y.attrs['type'] = str(type(y))
+        dset_z = hfile.create_dataset('/z', data=z, chunks=True)
+        dset_z.attrs['type'] = str(type(z))
 
     class MySchema(Schema):
         x = Array(dtype=np.float64)
         y = Array(dtype=np.int32)
-        z = Array(dtype=np.unicode)
+        z = Array()
 
-    instance = MySchema.from_hdf(path, decode_string_arrays=True,
-                                 encoding='utf-8')
+    instance = MySchema.from_hdf(path,
+                                 decode_string_arrays=decode_string_arrays,
+                                 encoding=encoding)
 
     assert_equal(instance.x, x)
     assert_equal(instance.y, y)
-    assert_equal(instance.z, [s.decode('utf8') for s in z])
 
-
-test_from_hdf('.')
+    if decode_string_arrays:
+        assert_equal(instance.z, [s.decode(encoding) for s in z])
+    else:
+        assert_equal(instance.z, z)
 
 
 def test_to_dict(sample_recarray):

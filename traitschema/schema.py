@@ -202,6 +202,11 @@ class Schema(HasTraits):
                                             data=data,
                                             chunks=chunks,
                                             **compression_kwargs)
+
+                # Store the data type as an attribute to make it easier to
+                # reconstruct with correct data types
+                dset.attrs['type'] = str(type(data))
+
                 if trait.desc is not None:
                     dset.attrs['desc'] = trait.desc
 
@@ -234,13 +239,12 @@ class Schema(HasTraits):
                 trait = self.trait(name)
                 if name not in hfile:
                     continue
-                data = hfile['/{}'.format(name)].value
+                dset = hfile['/{}'.format(name)]
+                data = dset.value
 
-                # ndarrays with a single type do not return anything for
-                # .dtype.names, so this is a reasonable way to check if the
-                # ndarray should really be a recarray that has multiple types
-                data_is_recarray = (isinstance(data, np.ndarray) and
-                                    data.dtype.names is not None)
+                # Use type attribute to determine how to proceed
+                data_is_recarray = dset.attrs['type'] == str(np.recarray)
+
                 if trait.array is True and decode_string_arrays:
                     # Encode each element of an array containing bytes
                     if ~data_is_recarray and data.dtype.char == 'S':
