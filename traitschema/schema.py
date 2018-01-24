@@ -161,6 +161,11 @@ class Schema(HasTraits):
                 # data type is unicode, each element is encoded as utf-8
                 # before being saved to hdf5
                 data = getattr(self, name)
+
+                if data is None:
+                    # If a trait has not been populated, don't try to store it
+                    continue
+
                 data_is_recarray = isinstance(data, np.recarray)
                 if trait.array is True and encode_string_arrays:
                     # Encode each element of an array containing unicode
@@ -197,6 +202,11 @@ class Schema(HasTraits):
                                             data=data,
                                             chunks=chunks,
                                             **compression_kwargs)
+
+                # Store the data type as an attribute to make it easier to
+                # reconstruct with correct data types
+                dset.attrs['type'] = str(type(data))
+
                 if trait.desc is not None:
                     dset.attrs['desc'] = trait.desc
 
@@ -204,12 +214,16 @@ class Schema(HasTraits):
             hfile.attrs['python_module'] = self.__class__.__module__
 
     @classmethod
-    def from_hdf(cls, filename):
+    def from_hdf(cls, filename, decode_string_arrays=True, encoding='utf-8'):
         """Deserialize from HDF5 using :mod:`h5py`.
 
         Parameters
         ----------
         filename : str
+        decode_string_arrays: bool
+            Arrays of bytes should be decoded into strings
+        encoding: str
+            Encoding scheme to use for decoding
 
         Returns
         -------
@@ -222,8 +236,38 @@ class Schema(HasTraits):
         self = cls()
         with h5py.File(filename, 'r') as hfile:
             for name in self.visible_traits():
-                data = hfile['/{}'.format(name)].value
+                trait = self.trait(name)
+                if name not in hfile:
+                    continue
+                dset = hfile['/{}'.format(name)]
+                data = dset.value
+
+                # Use type attribute to determine how to proceed
+                data_is_recarray = dset.attrs['type'] == str(np.recarray)
+
+                if trait.array is True and decode_string_arrays:
+                    # Encode each element of an array containing bytes
+                    if ~data_is_recarray and data.dtype.char == 'S':
+                        data = [s.decode(encoding) for s in data]
+
+                    elif data_is_recarray:
+                        # Determine what the final dtypes will be
+                        final_dtypes = []
+                        bytes_fields = []
+                        for i, field in enumerate(data.dtype.names):
+                            if data[field].dtype.kind != 'S':
+                                final_dtypes.append((field,
+                                                     data[field].dtype.str))
+                            else:
+                                final_dtypes.append((field, '<U256'))
+                                bytes_fields.append(field)
+
+                        # Update dtypes of the data. This will coerce the
+                        # bytes fields to unicode automatically
+                        data = data.astype(final_dtypes)
+
                 setattr(self, name, data)
+
         return self
 
     def to_json(self, **kwargs):

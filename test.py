@@ -6,7 +6,7 @@ import h5py
 import string
 import random
 
-from traits.api import Array, CStr, Float
+from traits.api import Array, CStr, Float, ArrayOrNone
 from traitschema import Schema
 
 
@@ -28,6 +28,7 @@ def sample_recarray():
 class SomeSchema(Schema):
     x = Array(dtype=np.float)
     y = Array()
+    z = ArrayOrNone()
     name = CStr()
 
 
@@ -39,12 +40,14 @@ class SomeSchema(Schema):
 def test_to_hdf(mode, desc, compression, compression_opts, encoding, tmpdir,
                 sample_recarray):
     class MySchema(Schema):
+        u = ArrayOrNone()
         v = Array(desc=desc)
         w = Float(desc=desc)
         x = Array(dtype=np.float64, desc=desc)
         y = Array(dtype=np.int32, desc=desc)
         z = Array(dtype=np.unicode, desc=desc)
-    obj = MySchema(v=sample_recarray,
+    obj = MySchema(u=None,
+                   v=sample_recarray,
                    w=0.01,
                    x=np.random.random(100),
                    y=np.random.random(100),
@@ -79,35 +82,52 @@ def test_to_hdf(mode, desc, compression, compression_opts, encoding, tmpdir,
             assert hfile['/y'].attrs['desc'] == desc
             assert hfile['/z'].attrs['desc'] == desc
         else:
-            assert len(hfile['/v'].attrs.keys()) == 0
-            assert len(hfile['/w'].attrs.keys()) == 0
-            assert len(hfile['/x'].attrs.keys()) == 0
-            assert len(hfile['/y'].attrs.keys()) == 0
-            assert len(hfile['/z'].attrs.keys()) == 0
+            # 'type' attribute should be populated
+            assert 'type' in hfile['/v'].attrs.keys()
+            assert 'type' in hfile['/w'].attrs.keys()
+            assert 'type' in hfile['/x'].attrs.keys()
+            assert 'type' in hfile['/y'].attrs.keys()
+            assert 'type' in hfile['/z'].attrs.keys()
 
 
-def test_from_hdf(tmpdir):
+@pytest.mark.parametrize("encoding", ['utf-8'])
+@pytest.mark.parametrize("decode_string_arrays", [True, False])
+def test_from_hdf(tmpdir, encoding, decode_string_arrays, sample_recarray):
+    w = sample_recarray
+    w = w.astype(dtype=[('field_1', '<S256'), ('field_2', '<i8')])
     x = np.arange(10)
     y = np.arange(10, dtype=np.int32)
-    z = np.array([generate_random_string().encode('utf8') for _ in range(5)])
+    z = np.array([generate_random_string().encode('utf-8') for _ in range(5)])
 
     path = str(tmpdir.join('test.h5'))
 
     with h5py.File(path, 'w') as hfile:
-        hfile.create_dataset('/x', data=x, chunks=True)
-        hfile.create_dataset('/y', data=y, chunks=True)
-        hfile.create_dataset('/z', data=z, chunks=True)
+        dset_w = hfile.create_dataset('/w', data=w)
+        dset_w.attrs['type'] = str(np.recarray)
+        dset_x = hfile.create_dataset('/x', data=x, chunks=True)
+        dset_x.attrs['type'] = str(type(x))
+        dset_y = hfile.create_dataset('/y', data=y, chunks=True)
+        dset_y.attrs['type'] = str(type(y))
+        dset_z = hfile.create_dataset('/z', data=z, chunks=True)
+        dset_z.attrs['type'] = str(type(z))
 
     class MySchema(Schema):
+        w = Array()
         x = Array(dtype=np.float64)
         y = Array(dtype=np.int32)
-        z = Array(dtype=np.unicode)
+        z = Array()
 
-    instance = MySchema.from_hdf(path)
+    instance = MySchema.from_hdf(path,
+                                 decode_string_arrays=decode_string_arrays,
+                                 encoding=encoding)
 
     assert_equal(instance.x, x)
     assert_equal(instance.y, y)
-    assert_equal(instance.z, [s.decode('utf8') for s in z])
+
+    if decode_string_arrays:
+        assert_equal(instance.z, [s.decode(encoding) for s in z])
+    else:
+        assert_equal(instance.z, z)
 
 
 def test_to_dict(sample_recarray):
@@ -126,7 +146,8 @@ def test_to_dict(sample_recarray):
 def test_to_npz(compress, tmpdir, sample_recarray):
     obj = SomeSchema(name='test',
                      x=[1, 2, 3],
-                     y=sample_recarray)
+                     y=sample_recarray,
+                     z=None)
     path = str(tmpdir.join('test.npz'))
     obj.to_npz(path, compress=compress)
 
@@ -148,7 +169,8 @@ def test_from_npz(tmpdir, sample_recarray):
 
 def test_to_json(sample_recarray):
     obj_with_recarray = SomeSchema(x=list(range(10)), name="whatever",
-                                   y=sample_recarray)
+                                   y=sample_recarray,
+                                   z=None)
     with pytest.raises(RuntimeError):
         jobj = obj_with_recarray.to_json()
 
