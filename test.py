@@ -92,7 +92,7 @@ def test_to_hdf(mode, desc, compression, compression_opts, encoding, tmpdir,
 def test_from_hdf(tmpdir):
     x = np.arange(10)
     y = np.arange(10, dtype=np.int32)
-    z = np.array([generate_random_string().encode('utf8') for _ in range(5)])
+    z = np.array([generate_random_string().encode('utf-8') for _ in range(5)])
 
     path = str(tmpdir.join('test.h5'))
 
@@ -106,11 +106,15 @@ def test_from_hdf(tmpdir):
         y = Array(dtype=np.int32)
         z = Array(dtype=np.unicode)
 
-    instance = MySchema.from_hdf(path)
+    instance = MySchema.from_hdf(path, decode_string_arrays=True,
+                                 encoding='utf-8')
 
     assert_equal(instance.x, x)
     assert_equal(instance.y, y)
     assert_equal(instance.z, [s.decode('utf8') for s in z])
+
+
+test_from_hdf('.')
 
 
 def test_to_dict(sample_recarray):

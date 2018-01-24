@@ -209,12 +209,16 @@ class Schema(HasTraits):
             hfile.attrs['python_module'] = self.__class__.__module__
 
     @classmethod
-    def from_hdf(cls, filename):
+    def from_hdf(cls, filename, decode_string_arrays=True, encoding='utf-8'):
         """Deserialize from HDF5 using :mod:`h5py`.
 
         Parameters
         ----------
         filename : str
+        decode_string_arrays: bool
+            Arrays of bytes should be decoded into strings
+        encoding: str
+            Encoding scheme to use for decoding
 
         Returns
         -------
@@ -227,8 +231,39 @@ class Schema(HasTraits):
         self = cls()
         with h5py.File(filename, 'r') as hfile:
             for name in self.visible_traits():
+                trait = self.trait(name)
+                if name not in hfile:
+                    continue
                 data = hfile['/{}'.format(name)].value
+
+                # ndarrays with a single type do not return anything for
+                # .dtype.names, so this is a reasonable way to check if the
+                # ndarray should really be a recarray that has multiple types
+                data_is_recarray = (isinstance(data, np.ndarray) and
+                                    data.dtype.names is not None)
+                if trait.array is True and decode_string_arrays:
+                    # Encode each element of an array containing bytes
+                    if ~data_is_recarray and data.dtype.char == 'S':
+                        data = [s.decode(encoding) for s in data]
+
+                    elif data_is_recarray:
+                        # Determine what the final dtypes will be
+                        final_dtypes = []
+                        bytes_fields = []
+                        for i, field in enumerate(data.dtype.names):
+                            if data[field].dtype.kind != 'S':
+                                final_dtypes.append((field,
+                                                     data[field].dtype.str))
+                            else:
+                                final_dtypes.append((field, '<U256'))
+                                bytes_fields.append(field)
+
+                        # Update dtypes of the data. This will coerce the
+                        # bytes fields to unicode automatically
+                        data = data.astype(final_dtypes)
+
                 setattr(self, name, data)
+
         return self
 
     def to_json(self, **kwargs):
