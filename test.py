@@ -83,16 +83,18 @@ def test_to_hdf(mode, desc, compression, compression_opts, encoding, tmpdir,
             assert hfile['/z'].attrs['desc'] == desc
         else:
             # 'type' attribute should be populated
-            assert len(hfile['/v'].attrs.keys()) == 1
-            assert len(hfile['/w'].attrs.keys()) == 1
-            assert len(hfile['/x'].attrs.keys()) == 1
-            assert len(hfile['/y'].attrs.keys()) == 1
-            assert len(hfile['/z'].attrs.keys()) == 1
+            assert 'type' in hfile['/v'].attrs.keys()
+            assert 'type' in hfile['/w'].attrs.keys()
+            assert 'type' in hfile['/x'].attrs.keys()
+            assert 'type' in hfile['/y'].attrs.keys()
+            assert 'type' in hfile['/z'].attrs.keys()
 
 
 @pytest.mark.parametrize("encoding", ['utf-8'])
 @pytest.mark.parametrize("decode_string_arrays", [True, False])
-def test_from_hdf(tmpdir, encoding, decode_string_arrays):
+def test_from_hdf(tmpdir, encoding, decode_string_arrays, sample_recarray):
+    w = sample_recarray
+    w = w.astype(dtype=[('field_1', '<S256'), ('field_2', '<i8')])
     x = np.arange(10)
     y = np.arange(10, dtype=np.int32)
     z = np.array([generate_random_string().encode('utf-8') for _ in range(5)])
@@ -100,6 +102,8 @@ def test_from_hdf(tmpdir, encoding, decode_string_arrays):
     path = str(tmpdir.join('test.h5'))
 
     with h5py.File(path, 'w') as hfile:
+        dset_w = hfile.create_dataset('/w', data=w)
+        dset_w.attrs['type'] = str(np.recarray)
         dset_x = hfile.create_dataset('/x', data=x, chunks=True)
         dset_x.attrs['type'] = str(type(x))
         dset_y = hfile.create_dataset('/y', data=y, chunks=True)
@@ -108,6 +112,7 @@ def test_from_hdf(tmpdir, encoding, decode_string_arrays):
         dset_z.attrs['type'] = str(type(z))
 
     class MySchema(Schema):
+        w = Array()
         x = Array(dtype=np.float64)
         y = Array(dtype=np.int32)
         z = Array()
