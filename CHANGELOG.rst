@@ -7,7 +7,7 @@ Version 1.1.3
 **2018-01-25**
 
 * Allow ``None`` values and improve recarray handling when using the HDF5
-  format
+  format (#8)
 
 
 Version 1.1.2
