@@ -4,8 +4,10 @@ import os.path as osp
 import shutil
 from tempfile import mkdtemp
 
+BUNDLE_VERSION = 1
 
-class UnknownArchiveFormat(Exception):
+
+class UnsupportedArchiveFormat(Exception):
     """Raised when a file extension doesn't match up with a supported archive
     format.
 
@@ -19,28 +21,13 @@ def tempdir():
     shutil.rmtree(dirname)
 
 
-def _get_archive_format(filename):
-    formats = {
-        '.zip': 'zip',
-        '.tar.gz': 'gztar',
-        '.tar.bz2': 'bztar',
-        '.tar.xz': 'xztar',
-        '.tar': 'tar',
-    }
-    for extension, format in formats.items():
-        if filename.endswith(extension):
-            return filename[:-len(extension)], format
-    raise UnknownArchiveFormat
-
-
 def bundle_schema(outfile, schema, format='npz'):
     """Bundle several :class:`Schema` objects into a single archive.
 
     Parameters
     ----------
     outfile : str
-        Output bundle filename. Archive format is determined by the extension
-        and can be any supported by :func:`shutil.make_archive`.
+        Output bundle filename. Only zip archives are supported.
     schema : Dict[str, Schema]
         Dictionary of :class:`Schema` objects to bundle together. Keys are names
         to give each schema and are used when loading a bundle.
@@ -53,14 +40,17 @@ def bundle_schema(outfile, schema, format='npz'):
     is used for individual serialized schema).
 
     """
-    basename, archive_format = _get_archive_format(outfile)
+    if not outfile.endswith('.zip'):
+        raise UnsupportedArchiveFormat
+    basename, ext = osp.splitext(outfile)
+    archive_format = ext.lstrip('.')
 
     with tempdir() as staging_dir:
-        index = {}
+        index = {'schema': {}, 'bundle_version': BUNDLE_VERSION}
         for key, obj in schema.items():
             filename = osp.join(staging_dir, key + '.' + format)
             obj.save(filename)
-            index[key] = {
+            index['schema'][key] = {
                 'filename': filename,
                 'classname': obj.__class__.__name__
             }
@@ -71,3 +61,15 @@ def bundle_schema(outfile, schema, format='npz'):
         archve_filename = shutil.make_archive(basename, archive_format,
                                               staging_dir)
         shutil.move(archve_filename, outfile)
+
+
+def load_bundle(filename):
+    """Loads a bundle of schema saved with :func:`bundle_schema`.
+
+    Parameters
+    ----------
+    filename : str
+        Path to bundled schema archive.
+
+    """
+    raise NotImplementedError
