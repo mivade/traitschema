@@ -1,9 +1,8 @@
 import contextlib
+import json
 import os.path as osp
 import shutil
 from tempfile import mkdtemp
-
-from .schema import Schema
 
 
 class UnknownArchiveFormat(Exception):
@@ -57,9 +56,17 @@ def bundle_schema(outfile, schema, format='npz'):
     basename, archive_format = _get_archive_format(outfile)
 
     with tempdir() as staging_dir:
+        index = {}
         for key, obj in schema.items():
             filename = osp.join(staging_dir, key + '.' + format)
             obj.save(filename)
+            index[key] = {
+                'filename': filename,
+                'classname': obj.__class__.__name__
+            }
+
+        with open(osp.join(staging_dir, '.index.json'), 'w') as f:
+            f.write(json.dumps(index))
 
         archve_filename = shutil.make_archive(basename, archive_format,
                                               staging_dir)
