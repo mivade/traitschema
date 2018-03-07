@@ -7,8 +7,10 @@ import h5py
 import numpy as np
 from numpy.testing import assert_equal
 import pytest
+
 from traits.api import Array, CStr, Float, ArrayOrNone
 from traitschema import Schema
+from traitschema.io import bundle_schema
 
 
 def generate_random_string(size=10):
@@ -221,3 +223,21 @@ def test_from_json(fromfile, tmpdir):
 
     assert_equal(obj.x, data['x'])
     assert obj.name == data['name']
+
+
+@pytest.mark.only
+@pytest.mark.parametrize('format', ['npz', 'h5', 'json'])
+@pytest.mark.parametrize('archive_format', ['.zip'])
+def test_bundle(format, archive_format, tmpdir):
+    x = np.random.random(100)
+    y = np.linspace(0, 10, 10, dtype='<i2')
+    z = None
+    name = 'terry'
+
+    schema = {
+        'first': SomeSchema(x=x, y=y, z=z, name=name),
+        'second': SomeSchema(x=x, y=y, z=z, name=name),
+    }
+
+    path = str(tmpdir.join('out')) + archive_format
+    bundle_schema(path, schema, format)
