@@ -46,6 +46,10 @@ def test_save_load(format, tmpdir):
     assert osp.exists(outfile)
 
     loaded = SomeSchema.load(outfile)
+    assert_equal(x, loaded.x)
+    assert_equal(y, loaded.y)
+    assert_equal(z, loaded.z)
+    assert loaded.name == name
 
 
 @pytest.mark.parametrize('mode', ['w', 'a'])
