@@ -1,11 +1,12 @@
 import json
-import pytest
-import numpy as np
-from numpy.testing import assert_equal
-import h5py
+import os.path as osp
 import string
 import random
 
+import h5py
+import numpy as np
+from numpy.testing import assert_equal
+import pytest
 from traits.api import Array, CStr, Float, ArrayOrNone
 from traitschema import Schema
 
@@ -30,6 +31,21 @@ class SomeSchema(Schema):
     y = Array()
     z = ArrayOrNone()
     name = CStr()
+
+
+@pytest.mark.parametrize('format', ['.npz', '.h5', '.json'])
+def test_save_load(format, tmpdir):
+    x = np.random.random(100)
+    y = np.linspace(0, 100, 100, dtype=np.int)
+    z = None
+    name = 'a name'
+
+    schema = SomeSchema(x=x, y=y, z=z, name=name)
+    outfile = str(tmpdir.join('filename' + format))
+    schema.save(outfile)
+    assert osp.exists(outfile)
+
+    loaded = SomeSchema.load(outfile)
 
 
 @pytest.mark.parametrize('mode', ['w', 'a'])

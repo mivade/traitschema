@@ -1,6 +1,7 @@
 from __future__ import division
 
 import json
+import os.path as osp
 
 import numpy as np
 from traits.api import HasTraits
@@ -79,6 +80,45 @@ class Schema(HasTraits):
     def to_dict(self):
         """Return all visible traits as a dictionary."""
         return {name: getattr(self, name) for name in self.visible_traits()}
+
+    def save(self, filename):
+        """Serialize using the type determined by the file extension.
+
+        Parameters
+        ----------
+        filename : str
+            Full output path.
+
+        Notes
+        -----
+        Only default saving options are used, so this method is less flexible
+        than using the ``to_xyz`` methods instead.
+
+        """
+        func = {
+            '.npz': 'to_npz',
+            '.h5': 'to_hdf',
+            '.json': 'to_json',
+        }[osp.splitext(filename)[1]]
+        if func != 'to_json':
+            getattr(self, func)(filename)
+        else:
+            with open(filename, 'w') as jf:
+                jf.write(getattr(self, func)())
+
+    @classmethod
+    def load(cls, filename):
+        """Counterpart to :meth:`save`."""
+        func = {
+            '.npz': 'from_npz',
+            '.h5': 'from_hdf',
+            '.json': 'from_json',
+        }[osp.splitext(filename)[1]]
+        if func != 'from_json':
+            return getattr(cls, func)(filename)
+        else:
+            with open(filename, 'r') as jf:
+                return getattr(cls, func)(jf)
 
     def to_npz(self, filename, compress=False):
         """Save in numpy's npz archive format.
@@ -270,8 +310,14 @@ class Schema(HasTraits):
 
         return self
 
-    def to_json(self, **kwargs):
-        """Serialize to JSON. Keyword arguments are passed to :func:`json.dumps`.
+    # FIXME: this should optionally write to a file
+    def to_json(self, json_kwargs={}):
+        """Serialize to JSON.
+
+        Parameters
+        ----------
+        json_kwargs : dict
+            Keyword arguments to pass to :func:`json.dumps`.
 
         Returns
         -------
@@ -286,9 +332,10 @@ class Schema(HasTraits):
 
         """
         data = {name: getattr(self, name) for name in self.visible_traits()}
-        kwargs['cls'] = _NumpyJsonEncoder
-        return json.dumps(data, **kwargs)
+        json_kwargs['cls'] = _NumpyJsonEncoder
+        return json.dumps(data, **json_kwargs)
 
+    # FIXME allow filenames
     @classmethod
     def from_json(cls, data):
         """Deserialize from a JSON string or file.

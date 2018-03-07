@@ -2,6 +2,7 @@
 out.json
 out.h5
 output.h5
+.idea/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
