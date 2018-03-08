@@ -1,8 +1,8 @@
+from copy import deepcopy
 import json
 import os.path as osp
 import string
 import random
-from zipfile import ZipFile
 
 import h5py
 import numpy as np
@@ -34,6 +34,13 @@ class SomeSchema(Schema):
     y = Array()
     z = ArrayOrNone()
     name = CStr()
+
+
+def test_eq():
+    a = SomeSchema(x=[1, 2, 3], y=[3, 2, 1], z=None, name='a thing')
+    b = SomeSchema(x=[3, 2, 3], y=[3, 1, 1], z=None, name='a thing')
+    assert a != b
+    assert a == deepcopy(a)
 
 
 @pytest.mark.parametrize('format', ['.npz', '.h5', '.json'])
@@ -226,7 +233,6 @@ def test_from_json(fromfile, tmpdir):
     assert obj.name == data['name']
 
 
-@pytest.mark.only
 @pytest.mark.parametrize('format', ['npz', 'h5', 'json'])
 @pytest.mark.parametrize('archive_format', ['.zip'])
 def test_bundle(format, archive_format, tmpdir):
