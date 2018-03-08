@@ -1,13 +1,17 @@
+from copy import deepcopy
 import json
-import pytest
-import numpy as np
-from numpy.testing import assert_equal
-import h5py
+import os.path as osp
 import string
 import random
 
+import h5py
+import numpy as np
+from numpy.testing import assert_equal
+import pytest
+
 from traits.api import Array, CStr, Float, ArrayOrNone
 from traitschema import Schema
+from traitschema.io import bundle_schema, load_bundle
 
 
 def generate_random_string(size=10):
@@ -30,6 +34,32 @@ class SomeSchema(Schema):
     y = Array()
     z = ArrayOrNone()
     name = CStr()
+
+
+def test_eq():
+    a = SomeSchema(x=[1, 2, 3], y=[3, 2, 1], z=None, name='a thing')
+    b = SomeSchema(x=[3, 2, 3], y=[3, 1, 1], z=None, name='a thing')
+    assert a != b
+    assert a == deepcopy(a)
+
+
+@pytest.mark.parametrize('format', ['.npz', '.h5', '.json'])
+def test_save_load(format, tmpdir):
+    x = np.random.random(100)
+    y = np.linspace(0, 100, 100, dtype=np.int)
+    z = None
+    name = 'a name'
+
+    schema = SomeSchema(x=x, y=y, z=z, name=name)
+    outfile = str(tmpdir.join('filename' + format))
+    schema.save(outfile)
+    assert osp.exists(outfile)
+
+    loaded = SomeSchema.load(outfile)
+    assert_equal(x, loaded.x)
+    assert_equal(y, loaded.y)
+    assert_equal(z, loaded.z)
+    assert loaded.name == name
 
 
 @pytest.mark.parametrize('mode', ['w', 'a'])
@@ -201,3 +231,30 @@ def test_from_json(fromfile, tmpdir):
 
     assert_equal(obj.x, data['x'])
     assert obj.name == data['name']
+
+
+@pytest.mark.parametrize('format', ['npz', 'h5', 'json'])
+@pytest.mark.parametrize('archive_format', ['.zip'])
+def test_bundle(format, archive_format, tmpdir):
+    """Tests saving and loading of bundles. If the format changes, the saving
+    and loading tests should probably be separated.
+
+    """
+    x = np.random.random(100)
+    y = np.linspace(0, 10, 10, dtype='<i2')
+    z = None
+    name = 'terry'
+
+    schema = {
+        'first': SomeSchema(x=x, y=y, z=z, name=name),
+        'second': SomeSchema(x=x, y=y, z=z, name=name),
+    }
+
+    path = str(tmpdir.join('out')) + archive_format
+    bundle_schema(path, schema, format)
+
+    loaded = load_bundle(path)
+    assert loaded['first'] == schema['first']
+    assert loaded['second'] == schema['second']
+    assert '__meta__' in loaded
+    assert 'bundle_version' in loaded['__meta__']
