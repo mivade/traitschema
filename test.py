@@ -11,7 +11,7 @@ import pytest
 
 from traits.api import Array, CStr, Float, ArrayOrNone
 from traitschema import Schema
-from traitschema.io import bundle_schema
+from traitschema.io import bundle_schema, load_bundle
 
 
 def generate_random_string(size=10):
@@ -230,6 +230,10 @@ def test_from_json(fromfile, tmpdir):
 @pytest.mark.parametrize('format', ['npz', 'h5', 'json'])
 @pytest.mark.parametrize('archive_format', ['.zip'])
 def test_bundle(format, archive_format, tmpdir):
+    """Tests saving and loading of bundles. If the format changes, the saving
+    and loading tests should probably be separated.
+
+    """
     x = np.random.random(100)
     y = np.linspace(0, 10, 10, dtype='<i2')
     z = None
@@ -248,3 +252,9 @@ def test_bundle(format, archive_format, tmpdir):
         assert '.index.json' in names
         for key in schema.keys():
             assert key + '.' + format in names
+
+    loaded = load_bundle(path)
+    assert loaded['first'] == schema['first']
+    assert loaded['second'] == schema['second']
+    assert '__meta__' in loaded
+    assert 'bundle_version' in loaded['__meta__']

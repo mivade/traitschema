@@ -1,8 +1,10 @@
 import contextlib
+from importlib import import_module
 import json
 import os.path as osp
 import shutil
 from tempfile import mkdtemp
+from zipfile import ZipFile
 
 BUNDLE_VERSION = 1
 
@@ -46,13 +48,18 @@ def bundle_schema(outfile, schema, format='npz'):
     archive_format = ext.lstrip('.')
 
     with tempdir() as staging_dir:
-        index = {'schema': {}, 'bundle_version': BUNDLE_VERSION}
+        index = {
+            'schema': {},
+            'bundle_version': BUNDLE_VERSION,
+        }
+
         for key, obj in schema.items():
             filename = osp.join(staging_dir, key + '.' + format)
             obj.save(filename)
             index['schema'][key] = {
-                'filename': filename,
-                'classname': obj.__class__.__name__
+                'filename': osp.basename(filename),
+                'classname': obj.__class__.__name__,
+                'module': obj.__class__.__module__,
             }
 
         with open(osp.join(staging_dir, '.index.json'), 'w') as f:
@@ -71,5 +78,28 @@ def load_bundle(filename):
     filename : str
         Path to bundled schema archive.
 
+    Returns
+    -------
+    schema : dict
+        A dictionary of stored schema where the keys are the keys used when
+        bundling. Additionally, a ``__meta__`` key will contain other info that
+        was stored when saved (e.g., bundling format version number).
+
     """
-    raise NotImplementedError
+    with tempdir() as path:
+        with ZipFile(filename) as zf:
+            zf.extractall(path)
+
+        with open(osp.join(path, '.index.json')) as f:
+            index = json.loads(f.read())
+
+        schema = {
+            '__meta__': {k: v for k, v in index.items() if k != 'schema'}
+        }
+
+        for key, value in index['schema'].items():
+            mod = import_module(value['module'])
+            cls = getattr(mod, value['classname'])
+            schema[key] = cls.load(osp.join(path, value['filename']))
+
+    return schema

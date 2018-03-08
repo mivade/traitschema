@@ -77,6 +77,20 @@ class Schema(HasTraits):
     def __repr__(self):  # pragma: nocover
         return self.__str__()
 
+    def __eq__(self, other):
+        for attr in self.visible_traits():
+            this = getattr(self, attr)
+            that = getattr(other, attr)
+            try:
+                if this != that:
+                    return False
+            except AttributeError:
+                return False
+            except ValueError:
+                if not all(this == that):
+                    return False
+        return True
+
     def to_dict(self):
         """Return all visible traits as a dictionary."""
         return {name: getattr(self, name) for name in self.visible_traits()}
