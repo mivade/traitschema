@@ -247,12 +247,6 @@ def test_bundle(format, archive_format, tmpdir):
     path = str(tmpdir.join('out')) + archive_format
     bundle_schema(path, schema, format)
 
-    with ZipFile(path) as zf:
-        names = zf.namelist()
-        assert '.index.json' in names
-        for key in schema.keys():
-            assert key + '.' + format in names
-
     loaded = load_bundle(path)
     assert loaded['first'] == schema['first']
     assert loaded['second'] == schema['second']

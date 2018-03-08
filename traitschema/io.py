@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 from importlib import import_module
 import json
 import os.path as osp
@@ -54,15 +55,16 @@ def bundle_schema(outfile, schema, format='npz'):
         }
 
         for key, obj in schema.items():
-            filename = osp.join(staging_dir, key + '.' + format)
+            basename = hashlib.sha1(key.encode()).hexdigest() + '.' + format
+            filename = osp.join(staging_dir, basename)
             obj.save(filename)
             index['schema'][key] = {
-                'filename': osp.basename(filename),
+                'filename': basename,
                 'classname': obj.__class__.__name__,
                 'module': obj.__class__.__module__,
             }
 
-        with open(osp.join(staging_dir, '.index.json'), 'w') as f:
+        with open(osp.join(staging_dir, 'index.json'), 'w') as f:
             f.write(json.dumps(index))
 
         archve_filename = shutil.make_archive(basename, archive_format,
@@ -90,7 +92,7 @@ def load_bundle(filename):
         with ZipFile(filename) as zf:
             zf.extractall(path)
 
-        with open(osp.join(path, '.index.json')) as f:
+        with open(osp.join(path, 'index.json')) as f:
             index = json.loads(f.read())
 
         schema = {
