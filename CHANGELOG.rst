@@ -1,6 +1,14 @@
 Changes
 =======
 
+Version 1.2.0
+-------------
+
+* Added generic ``save`` and ``load`` methods (#11)
+* Added ``schema.io`` module with functions to save and load "bundles" of schema
+  i.e., more than one at a time (#11)
+
+
 Version 1.1.3
 -------------
 
