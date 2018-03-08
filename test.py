@@ -2,6 +2,7 @@ import json
 import os.path as osp
 import string
 import random
+from zipfile import ZipFile
 
 import h5py
 import numpy as np
@@ -241,3 +242,9 @@ def test_bundle(format, archive_format, tmpdir):
 
     path = str(tmpdir.join('out')) + archive_format
     bundle_schema(path, schema, format)
+
+    with ZipFile(path) as zf:
+        names = zf.namelist()
+        assert '.index.json' in names
+        for key in schema.keys():
+            assert key + '.' + format in names
