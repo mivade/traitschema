@@ -11,6 +11,10 @@ traitschema
 .. image:: https://codecov.io/gh/mivade/traitschema/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/mivade/traitschema
 
+.. image:: https://img.shields.io/pypi/v/traitschema.svg
+    :alt: PyPI
+    :target: https://pypi.org/project/traitschema/
+
 .. image:: https://img.shields.io/github/release/mivade/traitschema.svg
     :target: https://github.com/mivade/traitschema
 
@@ -56,5 +60,4 @@ Data can be stored in the following formats:
 * Numpy ``npz`` format
 
 Multiple schema can be saved at once to a zip file via
-:func:`traitschema.bundle_schema` and loaded with
-:func:`traitschema.load_bundle`.
+``traitschema.bundle_schema`` and loaded with ``traitschema.load_bundle``.
