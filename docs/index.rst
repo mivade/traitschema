@@ -5,10 +5,19 @@
 
 .. include:: ../README.rst
 
+Reference
+---------
 
-Indices and tables
-==================
+.. autoclass:: traitschema.Schema
+    :members:
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. automodule:: traitschema.io
+    :members:
+
+
+.. Indices and tables
+   ==================
+
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`

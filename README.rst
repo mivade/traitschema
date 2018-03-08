@@ -54,3 +54,7 @@ Data can be stored in the following formats:
 * HDF5 via ``h5py``
 * JSON via the standard library ``json`` module
 * Numpy ``npz`` format
+
+Multiple schema can be saved at once to a zip file via
+:func:`traitschema.bundle_schema` and loaded with
+:func:`traitschema.load_bundle`.
