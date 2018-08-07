@@ -24,6 +24,7 @@ install:
   - conda create -q -n test-environment python=$PYTHON_VERSION
   - source activate test-environment
   - pip install -r requirements.txt
+  - pip install codecov
   - python setup.py install
 
 script:
