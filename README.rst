@@ -35,7 +35,7 @@ Defining schema
 In order to be able to properly serialize data, non-scalar traits should be
 declared as a ``traits.api.Array`` type. Example:
 
-.. code-block:: python
+.. code:: python
 
     import numpy as np
     from traits.api import Array, String
